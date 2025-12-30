@@ -56,9 +56,9 @@ class Trainer:
         model = networks.Depth(resize_shape=(self.opt.height, self.opt.width), pretrained_path=self.opt.da_path)
         # 初始化LoRA微调参数
         lora_config = LoraConfig(
-            r=16,
-            lora_alpha=32,
-            target_modules=["query", "value"],
+            r=self.opt.lora_r,
+            lora_alpha=2 * self.opt.lora_r,
+            target_modules=self.opt.lora_layers,
             lora_dropout=0.05,
             bias="none",
             task_type=None
@@ -83,7 +83,7 @@ class Trainer:
             self.models["decompose_encoder"].num_ch_enc, self.opt.scales)
         # 用于判断从哪里加载decompose的权重
         decompose_folder = ""
-        if self.opt.load_weights_folder:
+        if self.opt.load_weights_folder and "decompose" in self.opt.models_to_load:
             decompose_folder = self.opt.load_weights_folder
         else:
             decompose_folder = self.opt.decompose_weights_folder

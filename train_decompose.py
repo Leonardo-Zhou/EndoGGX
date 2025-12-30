@@ -4,6 +4,9 @@ import sys
 import os
 from trainer_decompose import Trainer
 from options import Options
+import random
+import numpy as np
+import torch
 
 DEBUG_MODE = True  # 设置为True启用调试模式
 
@@ -39,7 +42,7 @@ def setup_args():
         opts.device = "cuda:0"
 
         # 图像分解后的重建损失
-        opts.recons_weight = 1.5
+        opts.recons_weight = 2.0
         # Retinex损失
         opts.retinex_weight = 0.1
         # S通道平滑损失

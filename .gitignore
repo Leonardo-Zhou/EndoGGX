@@ -4,6 +4,7 @@ decompose_ckpt/*
 decompose_ckpt/
 checkpoints/*
 logs/*
+logs_r2/*
 
 
 

@@ -163,6 +163,14 @@ class Options:
                                 type=str,
                                 help="Folder to load depth anything weights. Necessary. Model need this weights to init",
                                 default="checkpoints/Depth-Anything-V2-Small-hf")
+        self.parser.add_argument("--lora_layers",
+                                type=list,
+                                help="layers you want to finetune",
+                                default=["query", "value"])
+        self.parser.add_argument("--lora_r",
+                                type=int,
+                                help="r for lora",
+                                default=16)
 
     def pham(self):
         """
@@ -181,11 +189,11 @@ class Options:
         self.parser.add_argument("--mean_alpha",
                                 type=float,
                                 help="mean alpha for Cook-Torrance BRDF",
-                                default=0.25)
+                                default=0.275)
         self.parser.add_argument("--alpha_range",
                                 type=float,
                                 help="alpha range for Cook-Torrance BRDF",
-                                default=0.1)
+                                default=0.15)
         self.parser.add_argument("--n_bins",
                                 type=int,
                                 help="number of bins for histogram",

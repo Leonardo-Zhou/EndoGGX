@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from modelSAM import register
+from . import register
 from .mmseg.models.sam import ImageEncoderViT, MaskDecoder, TwoWayTransformer
 
 logger = logging.getLogger(__name__)
