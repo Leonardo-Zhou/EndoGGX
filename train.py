@@ -35,17 +35,17 @@ def setup_args():
         opts.log_dir = "./logs_r2"
         # opts.load_weights_folder = "./logs_r2/wasserstein_hw001/models/weights_20"
         # opts.models_to_load = ["depth", "pose_encoder", "pose", "sam"]
-        opts.model_name = "was_hw001_ma0275_ar015_b5"
-        opts.description = "使用默认参数，更改桶的数量。对比试验"
+        opts.model_name = "was_hw001_ma0275_ar015_b20"
+        opts.description = "使用默认参数，更改rw"
         opts.device = "cuda:0"
-        opts.num_epochs = 25
+        opts.num_epochs = 30
         opts.batch_size = 8
         
         # 参数设置
         opts.distance_type = "wasserstein"
         opts.mean_alpha = 0.275
         opts.alpha_range = 0.15
-        opts.n_bins = 5
+        opts.n_bins = 20
 
         # 损失函数weights
         opts.reprojection_weight = 2.0
@@ -53,8 +53,6 @@ def setup_args():
         opts.highlight_weight = 0.01
         # 视差图平滑损失
         opts.disp_smooth_weight = 0.0
-        # 重建损失
-
 
         opts.log_frequency = 200  # 更频繁的日志输出
 

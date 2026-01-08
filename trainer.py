@@ -150,9 +150,10 @@ class Trainer:
                     'depth': 12, 
                     'num_heads': 12, 
                     'global_attn_indexes': [2, 5, 8, 11]}}}
-        self.models["sam"] = networks.modelSAM.make(sam_config)
-        self.models["sam"].load_state_dict(torch.load(self.opt.sam_path), strict=True)
-        for param in self.models["sam"].parameters():
+        self.sam = networks.modelSAM.make(sam_config)
+        self.sam.load_state_dict(torch.load(self.opt.sam_path), strict=True)
+        self.sam.to(self.device)
+        for param in self.sam.parameters():
             param.requires_grad = False
 
         for model_name in self.models.keys():
@@ -261,7 +262,7 @@ class Trainer:
             
 
             
-            if (self.epoch + 1) % self.opt.save_frequency == 0:
+            if (self.epoch + 1) % self.opt.save_frequency == 0 and (self.epoch + 1) > (self.opt.num_epochs - 10):
                 self.save_model()
 
     def run_epoch(self):
@@ -362,7 +363,7 @@ class Trainer:
 
         # ----- 使用SAM得到高光区域掩码 -----
         temp = utils.sam_preprocess(inputs[("color_aug", 0, 0)], size=(self.opt.sam_size, self.opt.sam_size))
-        highlight = self.models["sam"].pre_infer(temp, ori_size)
+        highlight = self.sam.pre_infer(temp, ori_size)
         outputs[("highlight_mask", 0)] = F.normalize(F.threshold(highlight, 0.0, 0))
         del temp, highlight
 
@@ -553,7 +554,7 @@ class Trainer:
             # ----- 2. 自适应 α（基于 M 分布）-----
             m_mean = m_masked.sum() / (mask_sum + 1e-6)
             m_mean_norm = m_mean / (m_max + 1e-6)
-            adaptive_alpha = self.opt.mean_alpha + 0.5 * self.opt.alpha_range - self.opt.alpha_range * m_mean_norm  # [0.15, 0.3]
+            adaptive_alpha = self.opt.mean_alpha + 0.5 * self.opt.alpha_range - self.opt.alpha_range * m_mean_norm
             adaptive_alpha = max(0.1, min(0.4, adaptive_alpha))
             
             # ----- 3. 权重 = mask * M_norm（归一化后）-----

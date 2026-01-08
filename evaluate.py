@@ -202,13 +202,34 @@ def setup_args():
     opts = options.parse()
     if DEBUG_MODE:
         
-        opts.load_weights_folder = "./logs_r2/was_hw001_ma0275_ar015/models/weights_6"
+        opts.load_weights_folder = "./logs_r2/was_hw001_ma0325_ar015/models/weights_29"
         opts.eval_split = "endovis"
         opts.data_path = "/data2/publicData/MICCAI19_SCARED/train"
 
         opts.device = "cuda:0"
 
     return opts
+
+
+def eval_list():
+    weights_folder_list = []
+    ori_name = "./logs_r2/was_hw001_ma0325_ar015/models/weights_{}"
+    for epoch in range(20, 29):
+        weights_folder_list.append(ori_name.format(epoch))
+
+    for folder in weights_folder_list:
+        options = Options()
+        opts = options.parse()
+        if DEBUG_MODE:
+            opts.load_weights_folder = folder
+            opts.eval_split = "endovis"
+            opts.data_path = "/data2/publicData/MICCAI19_SCARED/train"
+
+            opts.device = "cuda:0"
+        evaluate(opts)
+        del opts
+
 if __name__ == "__main__":
-    options = setup_args()
-    evaluate(options)
+    # options = setup_args()
+    # evaluate(options)
+    eval_list()
