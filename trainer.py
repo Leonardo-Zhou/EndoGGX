@@ -100,12 +100,13 @@ class Trainer:
         if not self.opt.train_decompose_enc:
             for param in self.models["decompose_encoder"].parameters():
                 param.requires_grad = False
-        else:
+        # 将参数加入，尽管无梯度要求。
+        # else:
             self.parameters_to_train += list(self.models["decompose_encoder"].parameters())
         if not self.opt.train_decompose:
             for param in self.models["decompose"].parameters():
                 param.requires_grad = False
-        else:
+        # else:
             self.parameters_to_train += list(self.models["decompose"].parameters())
         # 判断是否需要训练图像分解的部分，用于判断是否要进行图像的增强。
         self.train_IID = self.opt.train_decompose_enc or self.opt.train_decompose
@@ -352,7 +353,7 @@ class Trainer:
             if self.train_IID:
                 # 随机取增强方式为-1或者1
                 factor = self.factor_choicer.get_factor(torch.randint(0, 2, ()).item() * 2 - 1)
-                inputs[("color_aug", f_i, 0, "enhanced")] = utils.enhance_brightness_torch(inputs[("color_aug", f_i, 0)], factor)
+                inputs[("color_aug", f_i, 0, "enhanced")] = utils.enhance_brightness(inputs[("color_aug", f_i, 0)], factor)
                 decompose_features[(f_i, "enhanced")] = self.models["decompose_encoder"](inputs[("color_aug", f_i, 0, "enhanced")])
 
         ori_size = inputs[("color_aug", 0, 0)].shape[2:]
@@ -463,6 +464,7 @@ class Trainer:
         losses["loss"] = torch.tensor(0.0, device=self.device)
 
         # 计算分解的损失
+        # 更改下，加入这些损失，但是不训练IID的部分。我只是需要梯度
         if self.train_IID:
             self.compute_decompose_loss(inputs, outputs, losses)
         

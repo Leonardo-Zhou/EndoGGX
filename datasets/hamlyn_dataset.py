@@ -38,7 +38,9 @@ class HamlynDataset(data.Dataset):
                  width,
                  frame_idxs,
                  num_scales,
-                 is_train=False):
+                 is_train=False,
+                 specific_folders=None,
+                 sample_interval=1):
         super(HamlynDataset, self).__init__()
 
         self.data_path = data_path
@@ -76,7 +78,26 @@ class HamlynDataset(data.Dataset):
         
         self.long_rectified_files = ["rectified14", "rectified14", "rectified14", "rectified14"]
         self.scans = []
-        self.rectified_files = [os.path.join(self.data_path, file) for file in os.listdir(self.data_path)]
+        self.sample_interval = sample_interval  # 采样间隔
+        
+        # 获取所有文件夹
+        all_folders = [file for file in os.listdir(self.data_path)]
+        
+        # 如果指定了特定文件夹，只使用这些文件夹
+        if specific_folders is not None:
+            # 确保指定的文件夹存在
+            self.rectified_files = []
+            for folder in specific_folders:
+                folder_path = os.path.join(self.data_path, folder)
+                if os.path.exists(folder_path) and os.path.isdir(folder_path):
+                    self.rectified_files.append(folder_path)
+                else:
+                    print(f"Warning: Folder {folder} not found in {self.data_path}")
+        else:
+            # 否则使用所有rectified文件夹
+            self.rectified_files = [os.path.join(self.data_path, file) for file in all_folders if (file.startswith("rectified") and not file.endswith("zip"))]
+
+
         self.rectified_files.sort()
         self.long_rectified_files = self.rectified_files[7:]
         self.sequence_len = np.zeros([len(self.rectified_files)])
@@ -84,6 +105,12 @@ class HamlynDataset(data.Dataset):
             image01_paths = os.path.join(rectified_file, "image01", "*.jpg")
             seq_image01_paths = glob.glob(image01_paths)
             seq_image01_paths.sort()
+            
+            # 根据采样间隔过滤图像
+            if self.sample_interval > 1:
+                seq_image01_paths = seq_image01_paths[::self.sample_interval]
+                print(f"Sequence {rectified_file}: loaded {len(seq_image01_paths)} images (every {self.sample_interval}th image)")
+            
             for seq_image01_path in seq_image01_paths:
                 filename = os.path.basename(seq_image01_path)
                 seq_image02_path = os.path.join(rectified_file, "image02", filename)

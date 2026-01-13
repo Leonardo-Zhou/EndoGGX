@@ -35,17 +35,17 @@ def setup_args():
         opts.log_dir = "./logs_r2"
         # opts.load_weights_folder = "./logs_r2/wasserstein_hw001/models/weights_20"
         # opts.models_to_load = ["depth", "pose_encoder", "pose", "sam"]
-        opts.model_name = "was_hw001_ma0275_ar015_b20"
-        opts.description = "使用默认参数，更改rw"
+        opts.model_name = "was_hw001_ma0225_ar015_b15_decLoss_paraminlist"
+        opts.description = "简单更改逻辑。或许decompose的loss会对depth有影响。尝试是否是因为这个。"
         opts.device = "cuda:0"
         opts.num_epochs = 30
         opts.batch_size = 8
         
         # 参数设置
         opts.distance_type = "wasserstein"
-        opts.mean_alpha = 0.275
+        opts.mean_alpha = 0.225
         opts.alpha_range = 0.15
-        opts.n_bins = 20
+        opts.n_bins = 15
 
         # 损失函数weights
         opts.reprojection_weight = 2.0
@@ -64,4 +64,6 @@ if __name__ == "__main__":
     opts = setup_args()
     
     trainer = Trainer(opts)
+    # 简单修改
+    trainer.train_IID = True
     trainer.train() 

@@ -46,7 +46,7 @@ class SCAREDRAWDataset(SCAREDDataset):
         return image_path
 
     def get_depth(self, folder, frame_index, side, do_flip):
-        f_str = "scene_points{:06d}.tiff".format(frame_index)
+        f_str = "scene_points{:06d}.tiff".format(frame_index-1)
 
         depth_path = os.path.join(
             self.data_path,
