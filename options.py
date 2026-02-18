@@ -10,7 +10,7 @@ file_dir = os.path.dirname(__file__)  # the directory that options.py resides in
 class Options:
     def __init__(self):
 
-        self.parser = argparse.ArgumentParser(description="Non-Lambertian IID_SFM options")
+        self.parser = argparse.ArgumentParser(description="EndoGGX options")
 
         # PATHS
         self.parser.add_argument("--data_path",
