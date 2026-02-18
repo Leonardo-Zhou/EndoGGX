@@ -1,17 +1,18 @@
 from __future__ import absolute_import, division, print_function
 
 import glob
-import math
 import os
 import random
 import numpy as np
 from PIL import Image  # using pillow-simd for increased speed
 from PIL import ImageFile
+import math
 
 import torch.utils.data as data
 from torchvision import transforms
 
-ImageFile.LOAD_TRUNCATED_IMAGES=True
+ImageFile.LOAD_TRUNCATED_IMAGES = True
+
 
 def pil_loader(path):
     # open path as file to avoid ResourceWarning
@@ -19,7 +20,9 @@ def pil_loader(path):
     with open(path, 'rb') as f:
         with Image.open(f) as img:
             return img.convert('RGB')
-class HamlynDataset(data.Dataset):
+
+
+class StereoMISDataset(data.Dataset):
     """Superclass for monocular dataloaders
 
     Args:
@@ -32,16 +35,16 @@ class HamlynDataset(data.Dataset):
         is_train
         img_ext
     """
+
     def __init__(self,
                  data_path,
                  height,
                  width,
                  frame_idxs,
                  num_scales,
-                 is_train=False,
-                 specific_folders=None,
-                 sample_interval=1):
-        super(HamlynDataset, self).__init__()
+                 interval=20,
+                 is_train=False):
+        super(StereoMISDataset, self).__init__()
 
         self.data_path = data_path
         self.height = height
@@ -50,6 +53,7 @@ class HamlynDataset(data.Dataset):
         self.interp = Image.LANCZOS
 
         self.frame_idxs = frame_idxs
+        self.interval = interval
 
         self.is_train = is_train
 
@@ -63,7 +67,7 @@ class HamlynDataset(data.Dataset):
             self.contrast = (0.8, 1.2)
             self.saturation = (0.8, 1.2)
             self.hue = (-0.1, 0.1)
-            transforms.transforms.ColorJitter(self.brightness,self.contrast,self.saturation,self.hue)
+            transforms.transforms.ColorJitter(self.brightness, self.contrast, self.saturation, self.hue)
         except TypeError:
             self.brightness = 0.2
             self.contrast = 0.2
@@ -75,65 +79,44 @@ class HamlynDataset(data.Dataset):
             s = 2 ** i
             self.resize[i] = transforms.Resize((self.height // s, self.width // s),
                                                interpolation=self.interp)
-        
-        self.long_rectified_files = ["rectified14", "rectified14", "rectified14", "rectified14"]
+
         self.scans = []
-        self.sample_interval = sample_interval  # 采样间隔
-        
-        # 获取所有文件夹
-        all_folders = [file for file in os.listdir(self.data_path)]
-        
-        # 如果指定了特定文件夹，只使用这些文件夹
-        if specific_folders is not None:
-            # 确保指定的文件夹存在
-            self.rectified_files = []
-            for folder in specific_folders:
-                folder_path = os.path.join(self.data_path, folder)
-                if os.path.exists(folder_path) and os.path.isdir(folder_path):
-                    self.rectified_files.append(folder_path)
-                else:
-                    print(f"Warning: Folder {folder} not found in {self.data_path}")
-        else:
-            # 否则使用所有rectified文件夹
-            self.rectified_files = [os.path.join(self.data_path, file) for file in all_folders if (file.startswith("rectified") and not file.endswith("zip"))]
-
-
+        self.rectified_files = [os.path.join(self.data_path, file) for file in os.listdir(self.data_path) if not file.endswith("txt")]
         self.rectified_files.sort()
-        self.long_rectified_files = self.rectified_files[7:]
         self.sequence_len = np.zeros([len(self.rectified_files)])
         for i, rectified_file in enumerate(self.rectified_files):
-            image01_paths = os.path.join(rectified_file, "image01", "*.jpg")
-            seq_image01_paths = glob.glob(image01_paths)
-            seq_image01_paths.sort()
-            
-            # 根据采样间隔过滤图像
-            if self.sample_interval > 1:
-                seq_image01_paths = seq_image01_paths[::self.sample_interval]
-                print(f"Sequence {rectified_file}: loaded {len(seq_image01_paths)} images (every {self.sample_interval}th image)")
-            
-            for seq_image01_path in seq_image01_paths:
-                filename = os.path.basename(seq_image01_path)
-                seq_image02_path = os.path.join(rectified_file, "image02", filename)
-                seq_depth01_path = os.path.join(rectified_file, "depth01", filename[:-4]+".png")
-                seq_depth02_path = os.path.join(rectified_file, "depth02", filename[:-4]+".png")
-                
-                if os.path.exists(seq_image01_path) and os.path.exists(seq_image02_path) and os.path.exists(seq_depth01_path) and os.path.exists(seq_depth02_path):
-                    sequence = int(rectified_file[-2:])
-                    self.sequence_len[i] += 1
-                    self.scans.append(
-                        {
-                            "image01": seq_image01_path,
-                            "image02": seq_image02_path,
-                            "depth01": seq_depth01_path,
-                            "depth02": seq_depth02_path,
-                            "sequence": sequence,
-                            "index":int(filename[:-4]),
-                            "length": len(seq_image01_paths),
-                        })
-        print("Prepared Hamlyn dataset with %d sets of left & right images, left & right depths." % (len(self.scans)))
-        self.box = (180, 0, 590, 288)
+            dirs = os.listdir(rectified_file)
+            for dir_name in dirs:
+                if "stereo_P" in dir_name:
+                    base_folder = os.path.join(rectified_file, dir_name)
+                    break
+            image_paths = os.path.join(base_folder, "images", "*.png")
+            seq_image_paths = glob.glob(image_paths)
+            seq_image_paths.sort()
+            depth_paths = os.path.join(base_folder, "depth", "*.png")
+            seq_depth_paths = glob.glob(depth_paths)
+            seq_depth_paths.sort()
+            j = 0
+            for seq_image_path, seq_depth_path in zip(seq_image_paths, seq_depth_paths):
+                if os.path.exists(seq_image_path) and os.path.exists(seq_depth_path):
+                    sequence = int(rectified_file[-1])
+                    if j % self.interval == 0:
+
+                        self.sequence_len[i] += 1
+                        self.scans.append(
+                            {
+                                "image": seq_image_path,
+                                "depth": seq_depth_path,
+                                "sequence": sequence,
+                                "index": int(seq_image_path[-16:-10]),
+                                "length": len(seq_image_paths),
+                            })
+                    j += 1
+        print("Prepared StereoMIS dataset with %d sets of images and depths." % (len(self.scans)))
+
     def __len__(self):
         return len(self.scans)
+
     def preprocess(self, inputs, color_aug):
         """Resize colour images to the required scales and augment if required
 
@@ -153,9 +136,10 @@ class HamlynDataset(data.Dataset):
                 n, im, i = k
                 inputs[(n, im, i)] = self.to_tensor(f)
                 inputs[(n + "_aug", im, i)] = self.to_tensor(color_aug(f))
+
     def get_color(self, path, do_flip):
         color = self.loader(path)
-        
+
         if do_flip:
             color = color.transpose(Image.FLIP_LEFT_RIGHT)
 
@@ -163,11 +147,12 @@ class HamlynDataset(data.Dataset):
 
     def get_depth(self, path, do_flip):
 
-        depth_gt = np.array(Image.open(path), dtype=np.float32)
+        depth_gt = np.array(Image.open(path), dtype=np.float32)/256
         if do_flip:
             depth_gt = np.fliplr(depth_gt)
-
+        depth_gt = depth_gt * 150
         return depth_gt
+
     def __getitem__(self, index):
         """Returns a single training item from the dataset as a dictionary.
 
@@ -193,26 +178,21 @@ class HamlynDataset(data.Dataset):
             3       images resized to (self.width // 8, self.height // 8)
         """
         scan = self.scans[index]
-        sequence = scan["sequence"]
         inputs = {}
 
         inputs["sequence"] = scan["sequence"]
         inputs["index"] = scan["index"]
-        
+
         do_color_aug = self.is_train and random.random() > 0.5
         do_flip = self.is_train and random.random() > 0.5
 
-        inputs[("color", 0, 0)] = self.get_color(scan["image01"], do_flip)
-        inputs["depth_gt"] = self.get_depth(scan["depth01"], do_flip)
-        
-        if sequence > 13:
-            inputs[("color", 0, 0)] = inputs[("color", 0, 0)].crop(self.box)
-            inputs["depth_gt"] = inputs["depth_gt"][:,180:590]
+        inputs[("color", 0, 0)] = self.get_color(scan["image"], do_flip)
+        inputs["depth_gt"] = self.get_depth(scan["depth"], do_flip)
+
         inputs[("color", 0, 0)] = self.resize[0](inputs[("color", 0, 0)])
         inputs[("color", 0, 0)] = self.to_tensor(inputs[("color", 0, 0)])
-        
+
         return inputs
-# if __name__ == "__main__":
-#     ds = HamlynDataset(data_path='/mnt/data-hdd2/Beilei/Dataset/Hamlyn', height=256, width=320, frame_idxs=[0, -1, 1], num_scales=4, is_train=True)
-    
-#     test = ds[0]
+if __name__ == "__main__":
+    ds = StereoMISDataset(data_path='/data1/publicData/StereoMIS', height=256, width=320, frame_idxs=[0], num_scales=4, is_train=False)
+    print(ds.scans)
