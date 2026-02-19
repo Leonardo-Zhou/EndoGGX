@@ -5,7 +5,7 @@ decompose_ckpt/
 checkpoints/*
 logs/*
 logs_r2/*
-
+*.ipynb
 
 
 # Python cache files
